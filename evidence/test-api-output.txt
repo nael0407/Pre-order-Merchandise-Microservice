@@ -1,0 +1,73 @@
+==> 1. Health check (GET /health)
+{
+    "status": "ok",
+    "database": "connected"
+}
+==> 2. Create order (POST /batches/batch-test-1795671447/orders)
+{"orderId":"idem-1795671447-1","batchId":"batch-test-1795671447","customerName":"Natanael","contact":"081234567890","size":"M","qty":1,"status":"pending","createdAt":"2026-11-26T05:37:27Z","updatedAt":"2026-11-26T05:37:27Z","payDeadline":"2026-11-27T05:37:27Z"}
+201
+==> 3. Idempotency check (POST ulang dengan Idempotency-Key sama)
+HTTP 200
+==> 4. Get order detail (GET /batches/batch-test-1795671447/orders/idem-1795671447-1)
+{
+    "orderId": "idem-1795671447-1",
+    "batchId": "batch-test-1795671447",
+    "customerName": "Natanael",
+    "contact": "081234567890",
+    "size": "M",
+    "qty": 1,
+    "status": "pending",
+    "createdAt": "2026-11-26T05:37:27Z",
+    "updatedAt": "2026-11-26T05:37:27Z",
+    "payDeadline": "2026-11-27T05:37:27Z"
+}
+==> 5. Update size (PUT size=L)
+{
+    "orderId": "idem-1795671447-1",
+    "batchId": "batch-test-1795671447",
+    "customerName": "Natanael",
+    "contact": "081234567890",
+    "size": "L",
+    "qty": 1,
+    "status": "pending",
+    "createdAt": "2026-11-26T05:37:27Z",
+    "updatedAt": "2026-11-26T05:37:27Z",
+    "payDeadline": "2026-11-27T05:37:27Z"
+}
+==> 6. Admin update status tanpa X-API-Key (harus 401)
+HTTP 401
+==> 7. Admin update status paid dengan X-API-Key (harus 200)
+{
+    "orderId": "idem-1795671447-1",
+    "batchId": "batch-test-1795671447",
+    "customerName": "Natanael",
+    "contact": "081234567890",
+    "size": "L",
+    "qty": 1,
+    "status": "paid",
+    "createdAt": "2026-11-26T05:37:27Z",
+    "updatedAt": "2026-11-26T05:37:27Z",
+    "payDeadline": "2026-11-27T05:37:27Z"
+}
+==> 8. List orders per batch (GET /batches/batch-test-1795671447/orders)
+{
+    "batchId": "batch-test-1795671447",
+    "orders": [
+        {
+            "orderId": "idem-1795671447-1",
+            "batchId": "batch-test-1795671447",
+            "customerName": "Natanael",
+            "contact": "081234567890",
+            "size": "L",
+            "qty": 1,
+            "status": "paid",
+            "createdAt": "2026-11-26T05:37:27Z",
+            "updatedAt": "2026-11-26T05:37:27Z",
+            "payDeadline": "2026-11-27T05:37:27Z"
+        }
+    ]
+}
+==> 9. Cancel order dua kali (pertama 200, kedua 409)
+Cancel #1: HTTP 200
+Cancel #2: HTTP 409
+==> Semua tes dasar selesai!
