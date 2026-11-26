@@ -9,10 +9,10 @@ Client (curl / Postman)
    │ HTTPS (443, self-signed) / HTTP (80)
    ▼
 Default VPC (172.31.0.0/16, us-east-1)
-├── EC2 t3.micro (sg-ec2: 22, 80, 443)
+├── EC2 t3.micro (merch-ec2-sg: 22, 80, 443)
 │   ├── Nginx Reverse Proxy ──► 127.0.0.1:8000 (FastAPI + Uvicorn + PyMySQL)
 │   └── Cron (tiap 5 menit) ──► src/expire_orders.py
-└── RDS MySQL db.t3.micro (sg-rds: 3306 hanya dari sg-ec2, non-public)
+└── RDS MySQL db.t3.micro (merch-rds-sg: 3306 hanya dari merch-ec2-sg, non-public)
     └── Database: merch_preorder | Tabel tunggal: orders
 ```
 
@@ -70,7 +70,8 @@ kompaw/
 │   └── merch-preorder.conf   # Reverse proxy HTTP/HTTPS -> 127.0.0.1:8000
 ├── scripts/
 │   ├── aws_setup.sh          # Provisioning SG, DB Subnet Group, RDS, EC2 (us-east-1)
-│   └── ec2_bootstrap.sh      # Setup Python, Nginx, TLS cert, systemd, & cron di EC2
+│   ├── ec2_bootstrap.sh      # Setup Python, Nginx, TLS cert, systemd, & cron di EC2
+│   └── rebuild_all.sh        # One-command rebuild & verifikasi setelah sandbox reset
 ├── tests/
 │   └── test_api.sh           # Pengujian curl end-to-end
 ├── evidence/                 # Screenshot AWS & output pengujian
@@ -79,9 +80,15 @@ kompaw/
 
 ## Rencana Deployment (AWS Sandbox `us-east-1`)
 
-Karena AWS Learner Lab / sandbox menghapus resource saat sesi berakhir, provisioning dibuat repeatable lewat skrip:
+Karena AWS Learner Lab / sandbox menghapus resource saat sesi berakhir, provisioning dibuat repeatable lewat satu perintah:
 
-1. **Provisioning infrastruktur:** jalankan `scripts/aws_setup.sh` untuk membuat `sg-ec2`, `sg-rds`, `db-subnet-group`, instance **RDS MySQL** (`db.t3.micro`), key pair, dan instance **EC2** (`t3.micro`).
-2. **Inisialisasi database & aplikasi di EC2:** salin repo ke EC2, buat `.env`, jalankan `sql/schema.sql` ke RDS endpoint, lalu jalankan `scripts/ec2_bootstrap.sh` untuk memasang FastAPI service, Nginx (HTTP/HTTPS), dan `cron` `expire_orders.py`.
-3. **Verifikasi konektivitas:** jalankan `tests/test_api.sh https://<EC2_PUBLIC_IP>` (atau `http://`) untuk memverifikasi seluruh endpoint CRUD, transaksi kuota, idempotensi, dan koneksi ke RDS MySQL.
+```bash
+DB_PASS='PasswordAman123!' ADMIN_API_KEY='kunci-admin' ./scripts/rebuild_all.sh
+```
+
+Secara otomatis `rebuild_all.sh` menjalankan 3 tahap berikut:
+
+1. **Provisioning infrastruktur (`scripts/aws_setup.sh`):** membuat `merch-ec2-sg`, `merch-rds-sg`, `merch-preorder-sng`, instance **RDS MySQL** (`db.t3.micro`), key pair, dan instance **EC2** (`t3.micro`).
+2. **Inisialisasi database & aplikasi (`scripts/ec2_bootstrap.sh`):** menyalin kode & `.env` ke EC2, menjalankan `sql/schema.sql` ke RDS endpoint, serta memasang FastAPI service, Nginx (HTTP/HTTPS), dan `cron` `expire_orders.py`.
+3. **Verifikasi konektivitas (`tests/test_api.sh`):** menguji seluruh endpoint CRUD, transaksi kuota, idempotensi, dan koneksi ke RDS MySQL lewat `https://<EC2_PUBLIC_IP>`.
 
