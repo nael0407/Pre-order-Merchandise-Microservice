@@ -4,20 +4,10 @@ Sistem manajemen pre-order (PO) merchandise berkuota untuk himpunan/UKM kampus y
 
 ## Arsitektur
 
-```
-Client (curl / Postman)
-   │ HTTPS (443, self-signed) / HTTP (80)
-   ▼
-Default VPC (172.31.0.0/16, us-east-1)
-├── EC2 t3.micro (merch-ec2-sg: 22, 80, 443)
-│   ├── Nginx Reverse Proxy ──► 127.0.0.1:8000 (FastAPI + Uvicorn + PyMySQL)
-│   └── Cron (tiap 5 menit) ──► src/expire_orders.py
-└── RDS MySQL db.t3.micro (merch-rds-sg: 3306 hanya dari merch-ec2-sg, non-public)
-    └── Database: merch_preorder | Tabel tunggal: orders
-```
+![Arsitektur Track A (Cloud VM)](docs/architecture.png)
 
-- **Entitas tunggal:** `Order` pada tabel `orders` (primary key `order_id`).
-- **Keamanan:** RDS tidak diekspos ke publik; akses admin (`paid`, `picked-up`) dilindungi header `X-API-Key`; kredensial database dan konfigurasi PO disimpan di environment variable EC2.
+- **Entitas tunggal:** `Order` pada tabel `orders` (primary key `order_id`, indeks `(batch_id, contact, status)` dan `(status, pay_deadline)`).
+- **Keamanan:** `merch-ec2-sg` (port `22`, `80`, `443`), `merch-rds-sg` (port `3306` hanya dari `merch-ec2-sg`, RDS *non-public*), akses admin (`paid`, `picked-up`) dilindungi `X-API-Key`, dan kredensial DB disimpan di `.env` lokal EC2.
 
 ## Fitur & Aturan Bisnis Utama
 
