@@ -72,6 +72,7 @@ fi
 
 # 5. Key Pair untuk SSH
 if ! aws ec2 describe-key-pairs --key-names "$KEY_NAME" --region "$REGION" >/dev/null 2>&1; then
+  rm -f "${KEY_NAME}.pem"
   aws ec2 create-key-pair --key-name "$KEY_NAME" --query 'KeyMaterial' --output text --region "$REGION" > "${KEY_NAME}.pem"
   chmod 400 "${KEY_NAME}.pem"
   echo "==> Key pair disimpan ke ${KEY_NAME}.pem"
